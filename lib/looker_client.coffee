@@ -41,7 +41,7 @@ module.exports = class LookerAPIClient
 
     if @isBasicAuthProxyProtected()
       console.log "Authenticating with basic auth proxy"
-      headers['Authorization'] = "Basic #{@token}"
+      headers['Authorization'] = "Basic #{@basicAuthToken()}"
       requestConfig.qs = _.extend({ access_token: @token }, requestConfig.qs || {})
     else
       headers['Authorization'] = "token #{@token}"
