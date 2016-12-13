@@ -11,6 +11,13 @@ module.exports = class LookerAPIClient
   reachable: ->
     @token?
 
+  isBasicAuthProxyProtected: ->
+    process.env.PROXY_BASIC_AUTH_USERNAME && process.env.PROXY_BASIC_AUTH_PASSWORD
+
+  basicAuthToken: ->
+    new Buffer("#{process.env.PROXY_BASIC_AUTH_USERNAME}:#{process.env.PROXY_BASIC_AUTH_PASSWORD}")
+      .toString("base64")
+
   request: (requestConfig, successCallback, errorCallback, replyContext) ->
 
     unless @reachable()
@@ -30,9 +37,14 @@ module.exports = class LookerAPIClient
       metadata += " slash=#{replyContext.isSlashCommand()}"
 
     requestConfig.url = "#{@options.baseUrl}/#{requestConfig.path}"
-    headers =
-      Authorization: "token #{@token}"
-      "User-Agent": "looker-slackbot/#{npmPackage.version}#{metadata}"
+    headers = "User-Agent": "looker-slackbot/#{npmPackage.version}#{metadata}"
+
+    if @isBasicAuthProxyProtected()
+      headers['Authorization'] = "Basic #{@token}"
+      requestConfig.qs = _.extend({ access_token: @token }, requestConfig.qs || {})
+    else
+      headers['Authorization'] = "token #{@token}"
+
     requestConfig.headers = _.extend(headers, requestConfig.headers || {})
     request(requestConfig, (error, response, body) =>
       if error
@@ -79,6 +91,9 @@ module.exports = class LookerAPIClient
       form:
         client_id: @options.clientId
         client_secret: @options.clientSecret
+
+    if @isBasicAuthProxyProtected()
+      options.headers = Authorization: "Basic #{@basicAuthToken()}"
 
     request(options, (error, response, body) =>
       @tokenError = null
