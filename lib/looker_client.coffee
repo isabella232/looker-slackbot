@@ -40,12 +40,13 @@ module.exports = class LookerAPIClient
     headers = "User-Agent": "looker-slackbot/#{npmPackage.version}#{metadata}"
 
     if @isBasicAuthProxyProtected()
+      console.log "Authenticating with basic auth proxy"
       headers['Authorization'] = "Basic #{@token}"
       requestConfig.qs = _.extend({ access_token: @token }, requestConfig.qs || {})
     else
       headers['Authorization'] = "token #{@token}"
 
-    requestConfig.headers = _.extend(headers, requestConfig.headers || {})
+    requestConfig.headers = _.extend(requestConfig.headers || {}, headers)
     request(requestConfig, (error, response, body) =>
       if error
         errorCallback?(error)
