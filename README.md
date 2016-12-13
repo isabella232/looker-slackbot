@@ -19,9 +19,10 @@ Detailed information on how to interact with Lookerbot [can be found on Looker D
   - [Amazon S3](https://aws.amazon.com/s3/) account, bucket, and access keys
     - [Documentation](http://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html)
   - [Microsoft Azure Storage](https://azure.microsoft.com/en-us/services/storage/) account and access key
-      - [Documentation](https://azure.microsoft.com/en-us/documentation/articles/storage-introduction/) 
+      - [Documentation](https://azure.microsoft.com/en-us/documentation/articles/storage-introduction/)
 
 ### Deployment
+
 
 #### Create a new bot in Slack
 
