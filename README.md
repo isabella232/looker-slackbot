@@ -23,7 +23,6 @@ Detailed information on how to interact with Lookerbot [can be found on Looker D
 
 ### Deployment
 
-
 #### Create a new bot in Slack
 
 1. Under "Customize Slack" > "Configure" > "Custom Integrations" select "Bots"
