@@ -18,6 +18,7 @@ Detailed information on how to interact with Lookerbot [can be found on Looker D
 - (optional) To display chart images, credentials for a supported storage service:
   - [Amazon S3](https://aws.amazon.com/s3/) account, bucket, and access keys
     - [Documentation](http://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html)
+    - The acccess keys need the `s3:PutObjectAcl` permission.
   - [Microsoft Azure Storage](https://azure.microsoft.com/en-us/services/storage/) account and access key
       - [Documentation](https://azure.microsoft.com/en-us/documentation/articles/storage-introduction/)
 
@@ -56,6 +57,8 @@ The bot is configured entirely via environment variables. You'll want to set up 
 - `LOOKER_API_3_CLIENT_SECRET` (required) – The API 3.0 client secret for the user you want the bot to run as. This requires creating an API 3.0 user or an API 3.0 key for an existing user in Looker.
 
 - `LOOKER_CUSTOM_COMMAND_SPACE_ID` (optional) – The ID of a Space that you would like the bot to use to define custom commands. [Read about using custom commands on Looker Discourse](https://discourse.looker.com/t/2302).
+
+- `LOOKER_WEBHOOK_TOKEN` (optional) – The webhook validation token found in Looker's admin panel. This is only required if you're using the bot to send scheduled webhooks.
 
 - `SLACK_SLASH_COMMAND_TOKEN` (optional) – If you want to use slash commands with the Slack bot, provide the verification token from the slash command setup page so that the bot can verify the integrity of incoming slash commands.
 
@@ -100,6 +103,7 @@ The JSON objects should have the following keys:
 - `clientID` should be the API 3.0 client ID for the user you want the bot to run as
 - `clientSecret` should be the secret for that API 3.0 key
 - `customCommandSpaceId` is an optional parameter, representing a Space that you would like the bot to use to define custom commands.
+- `webhookToken` is an optional parameter. It's the webhook validation token found in Looker's admin panel. This is only required if you're using the bot to send scheduled webhooks.
 
 Here's an example JSON that connects to two Looker instances:
 
@@ -107,7 +111,7 @@ Here's an example JSON that connects to two Looker instances:
 [{"url": "https://me.looker.com", "apiBaseUrl": "https://me.looker.com:19999/api/3.0", "clientId": "abcdefghjkl", "clientSecret": "abcdefghjkl"},{"url": "https://me-staging.looker.com", "apiBaseUrl": "https://me-staging.looker.com:19999/api/3.0", "clientId": "abcdefghjkl", "clientSecret": "abcdefghjkl"}]
 ```
 
-The `LOOKER_URL`, `LOOKER_API_BASE_URL`, `LOOKER_API_3_CLIENT_ID`, `LOOKER_API_3_CLIENT_SECRET`, and `LOOKER_CUSTOM_COMMAND_SPACE_ID` variables are ignored when `LOOKERS` is set.
+The `LOOKER_URL`, `LOOKER_API_BASE_URL`, `LOOKER_API_3_CLIENT_ID`, `LOOKER_API_3_CLIENT_SECRET`, `LOOKER_WEBHOOK_TOKEN`, and `LOOKER_CUSTOM_COMMAND_SPACE_ID` variables are ignored when `LOOKERS` is set.
 
 ##### Running the Server
 
@@ -138,6 +142,79 @@ However, Slash commands are a bit friendlier to use and allow Slack to auto-comp
 
 Directions for creating slash commands [can be found in Looker Discourse](https://discourse.looker.com/t/using-lookerbot-for-slack/2302)
 
+### Scheduling Data to Slack
+
+You can use the bot to send scheduled Looks to Slack.
+
+1. Click "Schedule" on a Look
+2. Set "Destination" to "Webhook"
+3. Leave "Format" set to "HTML Attachment". The format selection is ignored.
+4. Enter the webhook URL.
+
+  - Post to public channels `/slack/post/channel/my-channel-name`
+    - (Lookerbot will need to be invited to this channel to post in it.)
+  - Post to private groups `/slack/post/group/my-channel-name`
+    - (Lookerbot will need to be invited to this group to post in it.)
+  - To direct message a user `/slack/post/dm/myusername`
+
+  These URLs are prefixed with the URL your bot. So, if yoru bot is hosted at `https://example.com` and you want to post to a channel called `data-science`, the URL would be `https://example.com/slack/post/channel/data-science`.
+
+5. You'll need to make sure that the `LOOKER_WEBHOOK_TOKEN` environment variable is properly set to the same verification token found in the Looker admin panel.
+
+### Using Data Actions with Slack
+
+The bot server also implements endpoints to allow you to easily send [Data Actions](https://discourse.looker.com/t/data-actions/3573) to Slack.
+
+Here's an example of a few data actions you could implement in your LookML. (Replace `https://example.com` with your bot's hostname.)
+
+To make use of this, you'll need to make sure that the `LOOKER_WEBHOOK_TOKEN` environment variable is properly set to the same verification token found in the Looker admin panel, just like with scheduling data.
+
+```coffeescript
+dimension: value {
+  sql: CONCAT(${first_name}, ' ', ${last_name}) ;;
+
+  # Let user choose a Slack channel to send to
+  action: {
+    label: "Send to Slack Channel"
+    url: "https://example.com/data_actions"
+    form_url: "https://example.com/data_actions/form"
+    param: {
+      name: "message"
+      value: ":signal_strength: I sent a value from Slack: {{rendered_value}}"
+    }
+  }
+
+  # Send to a particular Slack channel with a preset message
+  action: {
+    label: "Ping Channel"
+    url: "https://example.com/data_actions"
+    param: {
+      name: "message"
+      value: ":signal_strength: I sent a value from Slack: {{rendered_value}}"
+    }
+    param: {
+      name: "channel"
+      value: "#alerts"
+    }
+  }
+
+  # Ask the user for a message to send to a particular channel
+  action: {
+    label: "Ask a Question"
+    url: "https://example.com/data_actions"
+    form_param: {
+      name: "message"
+      default: "Something seems wrong... (add details)"
+    }
+    param: {
+      name: "channel"
+      value: "#alerts"
+    }
+  }
+
+}
+```
+
 ### Data Access
 
 We suggest creating a Looker API user specifically for the Slack bot, and using that user's API credentials. It's worth remembering that _everyone who can talk to your Slack bot has the permissions of this user_. If there's data you don't want people to access via Slack, ensure that user cannot access it using Looker's permissioning mechanisms.
@@ -147,6 +224,14 @@ Also, keep in mind that when the Looker bot answers questions in Slack _the resu
 To allow visualizations to appear in Slack, if configured to do so, the bot uploads them as images to Amazon S3 with an extremely long randomly-generated URL. Anyone with this URL can access that image at any time, though it should be extremely difficult to guess.
 
 If you choose to remove the image files from S3, the Slack messages that relied on those images will be blank.
+
+### Tweaking Behavior
+
+There are a couple environment variables that can be used to tweak behavior:
+
+- `LOOKER_SLACKBOT_EXPAND_URLS` – Set this to `true` to have the bot expand Link and Share URLs in any channel the bot is invited to.
+
+- `LOOKER_SLACKBOT_LOADING_MESSAGES` – Set this to `false` to disable posting loading messages.
 
 ### Running Locally for Development
 

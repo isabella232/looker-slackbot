@@ -69,6 +69,11 @@ module.exports = class FancyReplier
 
   startLoading: (cb) ->
 
+    # Scheduled messages don't have a loading indicator, why distract everything?
+    if @replyContext.scheduled
+      cb()
+      return
+
     sass = if @replyContext.isSlashCommand()
       "…"
     else
@@ -90,7 +95,7 @@ module.exports = class FancyReplier
     )
 
   start: ->
-    if process.env.LOOKER_SLACKBOT_STEALTH_EDIT == "true"
+    if process.env.LOOKER_SLACKBOT_LOADING_MESSAGES != "false"
       @startLoading(=>
         @work()
       )
