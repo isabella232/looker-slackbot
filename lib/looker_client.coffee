@@ -50,6 +50,7 @@ module.exports = class LookerAPIClient
       if error
         errorCallback?(error)
       else if response.statusCode == 200
+        console.log("RESPONSE BODY DEBUG: ", body)
         if response.headers['content-type'].indexOf("application/json") != -1
           successCallback?(JSON.parse(body))
         else
@@ -84,7 +85,6 @@ module.exports = class LookerAPIClient
     )
 
   fetchAccessToken: ->
-
     options =
       method: "POST"
       url: "#{@options.baseUrl}/login"
