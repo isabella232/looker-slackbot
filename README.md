@@ -1,3 +1,7 @@
+# Deprecated
+
+This is not supported anymore and has been replaced with other chatops
+
 # Lookerbot for Slack
 
 Lookerbot for [Slack](http://slack.com) integrates with [Looker](http://looker.com) to allow you to query all of your data directly from Slack. This enables everyone in your company to share data easily and answer data-driven questions instantly. Lookerbot expands Looker URLs in channels and allows you to create custom commands for running saved queries.
